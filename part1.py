@@ -107,9 +107,6 @@ def analyze_sentiment(text):
     return 0
 
 # Function to extract data from JSON files
-def extract_all_json_content(folder_path):
-    import os
-import json
 
 def extract_all_json_content(folder_path):
     """
@@ -161,9 +158,6 @@ def extract_all_json_content(folder_path):
     return extracted_content
 
 
-# Example usage
-folder_path = "EXTRACTED_FILINGS"  # Replace with your folder path
-data = extract_all_json_content("/content/edgar-crawler/datasets/EXTRACTED_FILINGS/10-K")
 # Main Streamlit App
 st.title("EDGAR 10-K Filings Sentiment Analysis")
 
