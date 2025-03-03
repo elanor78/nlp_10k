@@ -7,15 +7,28 @@ Original file is located at
     https://colab.research.google.com/drive/1DSB_OknLFJeHKGmr3wC_HFE7ICV_x919
 """
 
-!pip install streamlit
 import streamlit as st
 import json
 import subprocess
+import sys
 import os
 import pandas as pd
 import numpy as np
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import plotly.express as px
+import plotly.graph_objects as go
+
+# Function to install packages dynamically
+def install(package):
+    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
+# Install missing packages
+install("transformers")
+install("plotly")
+install("pandas")
+install("numpy")
+install("scikit-learn")
+install("requests")
 
 # Load FinBERT model and tokenizer
 model_name = "yiyanghkust/finbert-tone"
@@ -53,7 +66,7 @@ if st.button("Analyze"):
         # Assuming data is already downloaded and extracted in 'EXTRACTED_FILINGS'
         folder_path = f"edgar-crawler/datasets/EXTRACTED_FILINGS/10-K"
         data = extract_all_json_content(folder_path)
-
+        
         company_dfs = {}
         for report in data:
             company_name = report.get('company', 'Unknown')
@@ -69,13 +82,23 @@ if st.button("Analyze"):
                 else:
                     row[item_key] = None
             company_dfs[company_name] = pd.concat([company_dfs[company_name], pd.DataFrame([row])], ignore_index=True)
-
+        
         for company, df in company_dfs.items():
             st.subheader(f"Sentiment Scores for {company}")
             st.dataframe(df)
             df['Average'] = df.mean(axis=1)
             fig = px.line(df, x='year', y='Average', title=f"Sentiment Over Time for {company}")
             st.plotly_chart(fig)
+
+            # Show descriptive statistics
+            st.subheader("Descriptive Statistics")
+            st.write(df.describe())
+
+            # Correlation Matrix
+            st.subheader("Correlation Matrix")
+            corr_matrix = df.corr()
+            fig_corr = go.Figure(data=go.Heatmap(z=corr_matrix.values, x=corr_matrix.columns, y=corr_matrix.columns, colorscale='Viridis'))
+            st.plotly_chart(fig_corr)
+
     else:
         st.error("Please enter both Ticker Symbol and Start Year.")
-
