@@ -11,23 +11,19 @@ import json
 import os
 import pandas as pd
 import numpy as np
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from transformers import pipeline
 import plotly.express as px
 import plotly.graph_objects as go
 
-# Load FinBERT model and tokenizer
-model_name = "yiyanghkust/finbert-tone"
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForSequenceClassification.from_pretrained(model_name)
+# Load sentiment analysis pipeline
+sentiment_pipeline = pipeline("sentiment-analysis", model="yiyanghkust/finbert-tone")
 
 # Sentiment Analysis Function
 def analyze_sentiment(text):
-    inputs = tokenizer(text, max_length=512, truncation=True, return_tensors="pt")
-    outputs = model(**inputs)
-    logits = outputs.logits.detach().numpy()[0]
-    exp_logits = np.exp(logits)
-    probabilities = exp_logits / np.sum(exp_logits)
-    return probabilities
+    result = sentiment_pipeline(text)[0]
+    if result['label'] == 'positive':
+        return result['score']
+    return 0
 
 # Function to extract data from JSON files
 def extract_all_json_content(folder_path):
@@ -61,8 +57,7 @@ if st.button("Analyze"):
             for item in range(1, 17):
                 item_key = f'item_{item}'
                 if item_key in report:
-                    rating = analyze_sentiment(report[item_key])[1]  # Positive sentiment
-                    row[item_key] = rating
+                    row[item_key] = analyze_sentiment(report[item_key])
                 else:
                     row[item_key] = None
             company_dfs[company_name] = pd.concat([company_dfs[company_name], pd.DataFrame([row])], ignore_index=True)
@@ -85,3 +80,4 @@ if st.button("Analyze"):
             st.plotly_chart(fig_corr)
     else:
         st.error("Please enter both Ticker Symbol and Start Year.")
+
