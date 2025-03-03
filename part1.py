@@ -108,15 +108,62 @@ def analyze_sentiment(text):
 
 # Function to extract data from JSON files
 def extract_all_json_content(folder_path):
+    import os
+import json
+
+def extract_all_json_content(folder_path):
+    """
+    Extracts all content from JSON files in the specified folder, using only the first three parts of the filename.
+
+    Args:
+        folder_path (str): Path to the folder containing the JSON files.
+
+    Returns:
+        list: A list of dictionaries containing the content of each JSON file.
+    """
     extracted_content = []
+
+    # Ensure the folder exists
+    if not os.path.exists(folder_path):
+        print(f"Error: The folder '{folder_path}' does not exist.")
+        return extracted_content
+
+    # Iterate through all files in the folder
     for file_name in os.listdir(folder_path):
+        # Process only JSON files
         if file_name.endswith(".json"):
             file_path = os.path.join(folder_path, file_name)
-            with open(file_path, 'r') as f:
-                content = json.load(f)
+
+            try:
+                # Extract the first three components from the filename
+                parts = file_name.replace(".json", "").split("_")[:3]
+                if len(parts) < 3:
+                    print(f"Skipping invalid filename: {file_name}")
+                    continue
+
+                cik, filing_type, year = parts
+
+                # Load the JSON content
+                with open(file_path, 'r') as f:
+                    content = json.load(f)
+
+                # Add metadata to the content
+                content["cik"] = cik
+                content["filing_type"] = filing_type
+                content["year"] = year
+
+                # Append the content to the list
                 extracted_content.append(content)
+                print(f"Successfully extracted data from {file_name}")
+            except Exception as e:
+                print(f"Error reading {file_name}: {e}")
+
     return extracted_content
 
+
+# Example usage
+folder_path = "EXTRACTED_FILINGS"  # Replace with your folder path
+data = extract_all_json_content("/content/edgar-crawler/datasets/EXTRACTED_FILINGS/10-K")
 # Main Streamlit App
 st.title("EDGAR 10-K Filings Sentiment Analysis")
 
