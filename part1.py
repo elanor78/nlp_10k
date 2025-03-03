@@ -15,6 +15,87 @@ from transformers import pipeline
 import plotly.express as px
 import plotly.graph_objects as go
 
+def download_10k_filings(ticker, start_year):
+    """
+    Downloads and extracts 10-K filings for the specified ticker and starting year until the current year.
+    This function will clone the EDGAR crawler repository, download the requirements.txt if it's not present,
+    set up configurations, and run the download and extract scripts.
+
+    Args:
+        ticker (str): The stock ticker symbol for the company (e.g., "AAPL").
+        start_year (int): The year from which to start downloading filings.
+    """
+    # Get the current year
+    from datetime import datetime
+    current_year = datetime.now().year
+
+    # Clone the repository
+    repo_url = "https://github.com/nlpaueb/edgar-crawler.git"
+    repo_dir = "edgar-crawler"
+
+    # Clone the repository only if it doesn't exist
+    if not os.path.exists(repo_dir):
+        print(f"Cloning the repository from {repo_url}...")
+        subprocess.run(["git", "clone", repo_url], check=True)
+
+    # Navigate to the repository directory
+    os.chdir(repo_dir)
+
+    # Download the requirements.txt only if it doesn't exist
+    requirements_file = "requirements.txt"
+    if not os.path.exists(requirements_file):
+        print(f"Downloading {requirements_file}...")
+        subprocess.run(["curl", "-O", "https://raw.githubusercontent.com/nlpaueb/edgar-crawler/master/requirements.txt"], check=True)
+
+    # Install the required dependencies if not already installed
+    print("Installing required dependencies...")
+    subprocess.run(["pip", "install", "-r", requirements_file], check=True)
+
+    # Create the configuration dictionary
+    config = {
+        "download_filings": {
+            "start_year": start_year,
+            "end_year": current_year,
+            "quarters": [1, 2, 3, 4],
+            "filing_types": ["10-K"],
+            "cik_tickers": [ticker],  # Dynamic ticker
+            "user_agent": "Your Name (your-email@example.com)",  # Update with your information
+            "raw_filings_folder": "RAW_FILINGS",
+            "indices_folder": "INDICES",
+            "filings_metadata_file": "FILINGS_METADATA.csv",
+            "skip_present_indices": True
+        },
+        "extract_items": {
+            "raw_filings_folder": "RAW_FILINGS",
+            "extracted_filings_folder": "EXTRACTED_FILINGS",
+            "filings_metadata_file": "FILINGS_METADATA.csv",
+            "filing_types": ["10-K"],
+            "include_signature": False,
+            "items_to_extract": [],
+            "remove_tables": True,
+            "skip_extracted_filings": True
+        }
+    }
+
+    # Write the config to a file
+    with open('config.json', 'w') as f:
+        json.dump(config, f, indent=4)
+
+    # Run the download and extract scripts
+    try:
+        print(f"Downloading filings for {ticker} from {start_year} to {current_year}...")
+        subprocess.run(["python", "download_filings.py"], check=True)
+
+        print(f"Extracting items from filings for {ticker}...")
+        subprocess.run(["python", "extract_items.py"], check=True)
+
+        print("Process completed successfully!")
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred: {e}")
+    finally:
+        # Navigate back to the original directory
+        os.chdir('..')
+
 # Load sentiment analysis pipeline
 sentiment_pipeline = pipeline("sentiment-analysis", model="yiyanghkust/finbert-tone")
 
